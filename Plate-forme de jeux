@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Plateforme de Mini Jeux</title>
+  <style>
+    body { font-family: sans-serif; margin: 0; text-align: center; background: #f5f5f5; }
+    canvas { background: #fff; margin: 10px auto; display: block; border: 2px solid #000; }
+    .menu, .section { display: none; padding: 20px; }
+    .active { display: block; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+    .arrow-btn { font-size: 24px; margin: 5px; }
+    #memoryGrid {
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .memoryCard {
+      width: 80px; height: 80px;
+      background: #ddd;
+      font-size: 48px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border: 2px solid #999;
+      border-radius: 10px;
+    }
+    .memoryCard.flipped, .memoryCard.matched {
+      background: #fff;
+      border-color: #333;
+      cursor: default;
+    }
+    #pongCanvas, #casseBriqueCanvas {
+      background: #000;
+      margin: 20px auto;
+      display: block;
+      border: 3px solid #fff;
+      touch-action: none;
+    }
+    #tttGrid {
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      grid-gap: 8px;
+      justify-content: center;
+      margin: 30px auto 10px auto;
+      width: max-content;
+    }
+    .tttCell {
+      width: 80px; height: 80px;
+      background: #eee;
+      font-size: 56px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      border: 2px solid #555;
+      border-radius: 8px;
+      transition: background 0.1s;
+    }
+    .tttCell.winner {
+      background: #a1d99b;
+      border-color: #2c662d;
+    }
+    #g2048Grid table { border-spacing: 6px; }
+    #g2048Grid td {
+      width: 60px; height: 60px;
+      background: #eee;
+      color: #333;
+      font-weight: bold;
+      font-size: 28px;
+      border-radius: 8px;
+      text-align: center;
+      transition: background 0.1s, color 0.1s;
+    }
+  </style>
+</head>
+<body>
+
+<!-- MENU PRINCIPAL -->
+<div id="mainMenu" class="menu active">
+  <h1>🎮 Mini Jeux</h1>
+  <button onclick="showGame('lapin')">🐇 Jeu du Lapin</button>
+  <button onclick="showGame('memory')">🧠 Memory</button>
+  <button onclick="showGame('pong')">🏓 Ping Pong</button>
+  <button onclick="showGame('casseBrique')">🧱 Casse Brique</button>
+  <button onclick="showGame('rps')">✊✋✌️ Pierre Papier Ciseaux</button>
+  <button onclick="showGame('ttt')">❌⭕️ Morpion</button>
+  <button onclick="showGame('g2048')">🟫 2048</button>
+</div>
+
+<!-- JEU DU LAPIN -->
+<div id="lapinGame" class="section">
+  <button style="position:absolute; top:10px; left:10px;" onclick="returnToMenu()">⬅️ Retour Plate-forme</button>
+  <h1>🐇 Jeu du Lapin</h1>
+  <button onclick="startLapinGame('facile')">🐢 Facile</button>
+  <button onclick="startLapinGame('moyen')">🐇 Moyen</button>
+  <button onclick="startLapinGame('difficile')">🐉 Difficile</button>
+  <button onclick="startLapinGame('chrono')">⏱️ Contre-la-montre</button><br>
+  <button onclick="showLapinSection('shop')">🛒 Boutique</button>
+  <button onclick="showLapinSection('scores')">🏆 Meilleurs scores</button>
+  <button onclick="showLapinSection('tutoriel')">📖 Tutoriel</button>
+  <button onclick="toggleMusic()">🎵 Musique</button>
+  <div id="lapinGameSection" style="margin-top:20px;">
+    <canvas id="gameCanvas" width="450" height="450"></canvas><br>
+    <div>
+      <button class="arrow-btn" onclick="setDirection(0,-1)">⬆️</button><br>
+      <button class="arrow-btn" onclick="setDirection(-1,0)">⬅️</button>
+      <button class="arrow-btn" onclick="setDirection(1,0)">➡️</button><br>
+      <button class="arrow-btn" onclick="setDirection(0,1)">⬇️</button>
+    </div>
+    <div>
+      <button onclick="pauseLapinGame()">⏸️ Pause</button>
+      <button onclick="backToLapinMenu()">🏠 Menu Jeu</button>
+    </div>
+    <div id="scoreDisplay">Score : 0 | Pièces : 0</div>
+    <div id="timerDisplay"></div>
+  </div>
+  <div id="shop" class="menu" style="max-width:300px; margin:auto;">
+    <h2>🛍️ Boutique</h2>
+    <div>Pièces : <span id="coinCount">0</span></div>
+    <button onclick="buy('bunny','🐇',0)">🐇 Lapin (déjà équipé)</button>
+    <button onclick="buy('bunny','🐿️',240)">🐿️ Écureuil - 240</button><br>
+    <button onclick="buy('carrot','🥕',0)">🥕 Carotte (déjà équipée)</button>
+    <button onclick="buy('carrot','🍎',240)">🍎 Pomme - 240</button><br>
+    <button onclick="showLapinSection('mainMenu')">⬅️ Retour</button>
+  </div>
+  <div id="scores" class="menu" style="max-width:300px; margin:auto;">
+    <h2>🏆 Meilleurs Scores</h2>
+    <ul id="scoreList"></ul>
+    <button onclick="showLapinSection('mainMenu')">⬅️ Retour</button>
+  </div>
+  <div id="tutoriel" class="menu" style="max-width:400px; margin:auto;">
+    <h2>📖 Tutoriel</h2>
+    <p>Utilise les flèches pour déplacer le 🐇 et manger les 🥕 ou 🍎 !</p>
+    <p>🎯 Chaque 3 🥕 = +1 💰</p>
+    <p>⚠️ En mode difficile : obstacles + vitesse augmente</p>
+    <p>⏱️ En mode chrono : tu as 1 minute !</p>
+    <button onclick="showLapinSection('mainMenu')">⬅️ Retour</button>
+  </div>
+  <audio id="music" loop>
+    <source src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg" type="audio/ogg">
+  </audio>
+</div>
+
+<!-- JEU MEMORY -->
+<div id="memoryGame" class="section">
+  <button style="position:absolute; top:10px; left:10px;" onclick="returnToMenu()">⬅️ Retour Plate-forme</button>
+  <h1>🧠 Jeu Memory</h1>
+  <p>Retourne deux cartes identiques pour gagner !</p>
+  <div id="memoryGrid"></div>
+  <div style="margin-top:15px;">
+    <button onclick="startMemoryGame()">🔄 Recommencer</button>
+  </div>
+  <div id="memoryMessage" style="margin-top:15px; font-weight:bold;"></div>
+</div>
+
+<!-- JEU PING PONG -->
+<div id="pongGame" class="section">
+  <button style="position:absolute; top:10px; left:10px;" onclick="returnToMenu()">⬅️ Retour Plate-forme</button>
+  <h1>🏓 Ping Pong</h1>
+  <canvas id="pongCanvas" width="600" height="400"></canvas>
+  <p>Contrôles tactiles : glisse en haut/bas sur les côtés gauche/droit pour déplacer les raquettes.</p>
+</div>
+
+<!-- JEU CASSE BRIQUE -->
+<div id="casseBriqueGame" class="section">
+  <button style="position:absolute; top:10px; left:10px;" onclick="returnToMenu()">⬅️ Retour Plate-forme</button>
+  <h1>🧱 Casse Brique</h1>
+  <canvas id="casseBriqueCanvas" width="480" height="320"></canvas>
+  <div style="margin-top:10px;">
+    <button onclick="startCasseBrique()">🔄 Recommencer</button>
+  </div>
+  <div id="casseBriqueMessage" style="font-weight:bold; margin:10px;"></div>
+</div>
+
+<!-- JEU PIERRE-PAPIER-CISEAUX -->
+<div id="rpsGame" class="section">
+  <button style="position:absolute; top:10px; left:10px;" onclick="returnToMenu()">⬅️ Retour Plate-forme</button>
+  <h1>✊✋✌️ Pierre Papier Ciseaux</h1>
+  <div id="rpsChoices" style="margin:20px;">
+    <button onclick="playRPS('pierre')" style="font-size:30px;">✊</button>
+    <button onclick="playRPS('papier')" style="font-size:30px;">✋</button>
+    <button onclick="playRPS('ciseaux')" style="font-size:30px;">✌️</button>
+  </div>
+  <div id="rpsResult" style="font-size:24px; margin-top:20px;"></div>
+</div>
+
+<!-- JEU TIC TAC TOE -->
+<div id="tttGame" class="section">
+  <button style="position:absolute; top:10px; left:10px;" onclick="returnToMenu()">⬅️ Retour Plate-forme</button>
+  <h1>❌⭕️ Morpion</h1>
+  <div id="tttGrid"></div>
+  <div style="margin-top:15px;">
+    <button onclick="startTTT()">🔄 Recommencer</button>
+  </div>
+  <div id="tttMessage" style="margin-top:15px; font-weight:bold;"></div>
+</div>
+
+<!-- JEU 2048 -->
+<div id="g2048Game" class="section">
+  <button style="position:absolute; top:10px; left:10px;" onclick="returnToMenu()">⬅️ Retour Plate-forme</button>
+  <h1>🟫 2048</h1>
+  <div id="g2048Score" style="font-size:20px; margin:10px;">Score : 0</div>
+  <div id="g2048Grid" style="display:inline-block; margin:10px auto;"></div>
+  <div style="margin:18px;">
+    <button onclick="move2048('up')" class="arrow-btn">⬆️</button><br>
+    <button onclick="move2048('left')" class="arrow-btn">⬅️</button>
+    <button onclick="move2048('right')" class="arrow-btn">➡️</button><br>
+    <button onclick="move2048('down')" class="arrow-btn">⬇️</button>
+  </div>
+  <button onclick="start2048()">🔄 Recommencer</button>
+  <div id="g2048Message" style="font-weight:bold; margin-top:10px;"></div>
+</div>
+
+<script>
+window.onload = function() {
+
+  function hideAll() {
+    document.querySelectorAll('.menu, .section').forEach(el => el.classList.remove('active'));
+  }
+
+  window.showGame = function(game) {
+    hideAll();
+    if(game === 'lapin') {
+      document.getElementById('lapinGame').classList.add('active');
+      showLapinSection('mainMenu');
+    } else if(game === 'memory') {
+      document.getElementById('memoryGame').classList.add('active');
+      startMemoryGame();
+    } else if(game === 'pong') {
+      document.getElementById('pongGame').classList.add('active');
+      startPongGame();
+    } else if(game === 'casseBrique') {
+      document.getElementById('casseBriqueGame').classList.add('active');
+      startCasseBrique();
+    } else if(game === 'rps') {
+      document.getElementById('rpsGame').classList.add('active');
+      resetRPS();
+    } else if(game === 'ttt') {
+      document.getElementById('tttGame').classList.add('active');
+      startTTT();
+    } else if(game === 'g2048') {
+      document.getElementById('g2048Game').classList.add('active');
+      start2048();
+    }
+  }
+
+  window.returnToMenu = function() {
+    clearInterval(lapinGameLoop);
+    clearInterval(lapinTimerInterval);
+    stopPongGame();
+    stopCasseBrique();
+    hideAll();
+    document.getElementById('mainMenu').classList.add('active');
+  }
+
+  // ==== CASSE BRIQUE ====
+  let casseBriqueInterval;
+  let casseBriqueRunning = false;
+
+  let cbCanvas = document.getElementById('casseBriqueCanvas');
+  let cbCtx = cbCanvas.getContext('2d');
+
+  let cbBallRadius = 8;
+  let cbX, cbY, cbDX, cbDY;
+  let cbPaddleHeight = 10;
+  let cbPaddleWidth = 70;
+  let cbPaddleX;
+  let cbRightPressed = false;
+  let cbLeftPressed = false;
+  let cbBrickRowCount = 5;
+  let cbBrickColumnCount = 8;
+  let cbBrickWidth = 50;
+  let cbBrickHeight = 18;
+  let cbBrickPadding = 8;
+  let cbBrickOffsetTop = 32;
+  let cbBrickOffsetLeft = 14;
+  let cbBricks = [];
+  let cbScore = 0;
+  let cbLives = 3;
+
+  function initCasseBriqueVars() {
+    cbX = cbCanvas.width/2;
+    cbY = cbCanvas.height - 30;
+    cbDX = 3 * (Math.random() < .5 ? 1 : -1);
+    cbDY = -3;
+    cbPaddleX = (cbCanvas.width-cbPaddleWidth)/2;
+    cbBricks = [];
+    for(let c=0; c<cbBrickColumnCount; c++) {
+      cbBricks[c] = [];
+      for(let r=0; r<cbBrickRowCount; r++) {
+        cbBricks[c][r] = { x: 0, y: 0, status: 1 };
+      }
+    }
+    cbScore = 0;
+    cbLives = 3;
+    document.getElementById('casseBriqueMessage').textContent = '';
+  }
+
+  function drawCasseBrique() {
+    cbCtx.clearRect(0, 0, cbCanvas.width, cbCanvas.height);
+
+    // Draw bricks
+    for(let c=0; c<cbBrickColumnCount; c++) {
+      for(let r=0; r<cbBrickRowCount; r++) {
+        if(cbBricks[c][r].status == 1) {
+          let brickX = (c*(cbBrickWidth+cbBrickPadding)) + cbBrickOffsetLeft;
+          let brickY = (r*(cbBrickHeight+cbBrickPadding)) + cbBrickOffsetTop;
+          cbBricks[c][r].x = brickX;
+          cbBricks[c][r].y = brickY;
+          cbCtx.beginPath();
+          cbCtx.rect(brickX, brickY, cbBrickWidth, cbBrickHeight);
+          cbCtx.fillStyle = "#e67e22";
+          cbCtx.fill();
+          cbCtx.closePath();
+        }
+      }
+    }
+
+    // Draw ball
+    cbCtx.beginPath();
+    cbCtx.arc(cbX, cbY, cbBallRadius, 0, Math.PI*2);
+    cbCtx.fillStyle = "#1abc9c";
+    cbCtx.fill();
+    cbCtx.closePath();
+
+    // Draw paddle
+    cbCtx.beginPath();
+    cbCtx.rect(cbPaddleX, cbCanvas.height-cbPaddleHeight-6, cbPaddleWidth, cbPaddleHeight);
+    cbCtx.fillStyle = "#2c3e50";
+    cbCtx.fill();
+    cbCtx.closePath();
+
+    // Draw score and lives
+    cbCtx.font = "16px Arial";
+    cbCtx.fillStyle = "#222";
+    cbCtx.fillText("Score: "+cbScore, 8, 20);
+    cbCtx.fillText("Vies: "+cbLives, cbCanvas.width-65, 20);
+  }
+
+  function collisionDetectionCasseBrique() {
+    for(let c=0; c<cbBrickColumnCount; c++) {
+      for(let r=0; r<cbBrickRowCount; r++) {
+        let b = cbBricks[c][r];
+        if(b.status == 1) {
+          if(cbX > b.x && cbX < b.x+cbBrickWidth && cbY > b.y && cbY < b.y+cbBrickHeight) {
+            cbDY = -cbDY;
+            b.status = 0;
+            cbScore++;
+            if(cbScore == cbBrickRowCount*cbBrickColumnCount) {
+              document.getElementById('casseBriqueMessage').textContent = "🎉 Bravo, tu as gagné !";
+              stopCasseBrique();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function drawCasseBriqueFrame() {
+    drawCasseBrique();
+    collisionDetectionCasseBrique();
+
+    if(cbX + cbDX > cbCanvas.width-cbBallRadius || cbX + cbDX < cbBallRadius) {
+      cbDX = -cbDX;
+    }
+    if(cbY + cbDY < cbBallRadius) {
+      cbDY = -cbDY;
+    } else if(cbY + cbDY > cbCanvas.height-cbBallRadius-cbPaddleHeight-6) {
+      if(cbX > cbPaddleX && cbX < cbPaddleX + cbPaddleWidth) {
+        cbDY = -cbDY;
+      } else if(cbY + cbDY > cbCanvas.height-cbBallRadius) {
+        cbLives--;
+        if(!cbLives) {
+          document.getElementById('casseBriqueMessage').textContent = "Fin du jeu ! 😢";
+          stopCasseBrique();
+        } else {
+          cbX = cbCanvas.width/2;
+          cbY = cbCanvas.height - 30;
+          cbDX = 3 * (Math.random() < .5 ? 1 : -1);
+          cbDY = -3;
+          cbPaddleX = (cbCanvas.width-cbPaddleWidth)/2;
+        }
+      }
+    }
+
+    cbX += cbDX;
+    cbY += cbDY;
+
+    if(cbRightPressed && cbPaddleX < cbCanvas.width-cbPaddleWidth) {
+      cbPaddleX += 7;
+    } else if(cbLeftPressed && cbPaddleX > 0) {
+      cbPaddleX -= 7;
+    }
+  }
+
+  function keyDownHandlerCB(e) {
+    if(e.key == "Right" || e.key == "ArrowRight") {
+      cbRightPressed = true;
+    }
+    else if(e.key == "Left" || e.key == "ArrowLeft") {
+      cbLeftPressed = true;
+    }
+  }
+  function keyUpHandlerCB(e) {
+    if(e.key == "Right" || e.key == "ArrowRight") {
+      cbRightPressed = false;
+    }
+    else if(e.key == "Left" || e.key == "ArrowLeft") {
+      cbLeftPressed = false;
+    }
+  }
+  function mouseMoveHandlerCB(e) {
+    let relativeX = e.clientX - cbCanvas.getBoundingClientRect().left;
+    if(relativeX > 0 && relativeX < cbCanvas.width) {
+      cbPaddleX = relativeX - cbPaddleWidth/2;
+      if(cbPaddleX < 0) cbPaddleX = 0;
+      if(cbPaddleX > cbCanvas.width-cbPaddleWidth) cbPaddleX = cbCanvas.width-cbPaddleWidth;
+    }
+  }
+
+  function touchMoveHandlerCB(e) {
+    if(e.touches.length) {
+      let touch = e.touches[0];
+      let rect = cbCanvas.getBoundingClientRect();
+      let relativeX = touch.clientX - rect.left;
+      if(relativeX > 0 && relativeX < cbCanvas.width) {
+        cbPaddleX = relativeX - cbPaddleWidth/2;
+        if(cbPaddleX < 0) cbPaddleX = 0;
+        if(cbPaddleX > cbCanvas.width-cbPaddleWidth) cbPaddleX = cbCanvas.width-cbPaddleWidth;
+      }
+    }
+    e.preventDefault();
+  }
+
+  window.startCasseBrique = function() {
+    stopCasseBrique();
+    initCasseBriqueVars();
+    casseBriqueRunning = true;
+    drawCasseBrique();
+    casseBriqueInterval = setInterval(drawCasseBriqueFrame, 14);
+  }
+
+  function stopCasseBrique() {
+    casseBriqueRunning = false;
+    clearInterval(casseBriqueInterval);
+  }
+
+  if(cbCanvas) {
+    cbCanvas.addEventListener("mousemove", mouseMoveHandlerCB, false);
+    cbCanvas.addEventListener("touchmove", touchMoveHandlerCB, false);
+    document.addEventListener("keydown", keyDownHandlerCB, false);
+    document.addEventListener("keyup", keyUpHandlerCB, false);
+  }
+
+  // ==== JEU DU LAPIN ====
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  let gridSize = 9, cellSize = canvas.width / gridSize;
+  let lapin = { x: 4, y: 4 };
+  let dir = { x: 0, y: 0 };
+  let carotte = {};
+  let score = 0, coins = +localStorage.getItem("coins") || 0;
+  let lapinGameLoop, lapinTimerInterval, obstacles = [];
+  let bestScores = JSON.parse(localStorage.getItem("bestScores") || "[]");
+  let bunnySkin = localStorage.getItem("bunnySkin") || "🐇";
+  let carrotSkin = localStorage.getItem("carrotSkin") || "🥕";
+  let gameMode = 'facile';
+  let timer = 0;
+  let musicPlaying = false;
+
+  function drawCell(x,y,content){
+    ctx.fillStyle = "#a1d99b";
+    ctx.fillRect(x*cellSize,y*cellSize,cellSize,cellSize);
+    ctx.strokeStyle = "#5a8f29";
+    ctx.strokeRect(x*cellSize,y*cellSize,cellSize,cellSize);
+    ctx.font = cellSize*0.8 + "px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#333";
+    ctx.fillText(content, x*cellSize + cellSize/2, y*cellSize + cellSize/2);
+  }
+
+  function placeCarotte(){
+    let x,y,ok=false;
+    while(!ok){
+      x = Math.floor(Math.random()*gridSize);
+      y = Math.floor(Math.random()*gridSize);
+      ok = (x !== lapin.x || y !== lapin.y) && !obstacles.some(o => o.x === x && o.y === y);
+    }
+    carotte = {x,y};
+  }
+
+  function drawGame(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let x=0;x<gridSize;x++){
+      for(let y=0;y<gridSize;y++){
+        drawCell(x,y,"");
+      }
+    }
+    obstacles.forEach(o => drawCell(o.x,o.y,"⛔"));
+    drawCell(carotte.x,carotte.y, carrotSkin);
+    drawCell(lapin.x, lapin.y, bunnySkin);
+  }
+
+  function gameOver(){
+    alert("Fin du jeu ! Score : " + score + " | Pièces : " + coins);
+    if(score > (bestScores[0]||0)){
+      bestScores.unshift(score);
+      bestScores.sort((a,b)=>b-a);
+      bestScores.splice(5);
+      localStorage.setItem("bestScores", JSON.stringify(bestScores));
+    }
+    localStorage.setItem("coins", coins);
+    window.returnToMenu();
+  }
+
+  function updateGame(){
+    lapin.x += dir.x;
+    lapin.y += dir.y;
+    if(lapin.x < 0 || lapin.x >= gridSize || lapin.y < 0 || lapin.y >= gridSize){
+      gameOver();
+      return;
+    }
+    if(obstacles.some(o => o.x === lapin.x && o.y === lapin.y)){
+      gameOver();
+      return;
+    }
+    if(lapin.x === carotte.x && lapin.y === carotte.y){
+      score++;
+      if(score % 3 === 0){
+        coins++;
+        document.getElementById("coinCount").textContent = coins;
+      }
+      placeCarotte();
+    }
+    drawGame();
+    document.getElementById("scoreDisplay").textContent = "Score : " + score + " | Pièces : " + coins;
+  }
+
+  window.startLapinGame = function(mode){
+    gameMode = mode;
+    lapin = {x:4,y:4};
+    dir = {x:0,y:0};
+    score = 0;
+    obstacles = [];
+    timer = 0;
+    if(mode === 'difficile'){
+      for(let i=0;i<10;i++){
+        obstacles.push({x: Math.floor(Math.random()*gridSize), y: Math.floor(Math.random()*gridSize)});
+      }
+    }
+    placeCarotte();
+    drawGame();
+    clearInterval(lapinGameLoop);
+    clearInterval(lapinTimerInterval);
+    lapinGameLoop = setInterval(updateGame, 300);
+    if(mode === 'chrono'){
+      document.getElementById("timerDisplay").textContent = "Temps : 60s";
+      timer = 60;
+      lapinTimerInterval = setInterval(()=>{
+        timer--;
+        document.getElementById("timerDisplay").textContent = "Temps : " + timer + "s";
+        if(timer <= 0){
+          clearInterval(lapinTimerInterval);
+          gameOver();
+        }
+      },1000);
+    } else {
+      document.getElementById("timerDisplay").textContent = "";
+    }
+  }
+
+  window.setDirection = function(x,y){
+    dir = {x,y};
+  }
+
+  window.pauseLapinGame = function(){
+    clearInterval(lapinGameLoop);
+    clearInterval(lapinTimerInterval);
+  }
+
+  window.backToLapinMenu = function(){
+    clearInterval(lapinGameLoop);
+    clearInterval(lapinTimerInterval);
+    showLapinSection('mainMenu');
+  }
+
+  window.showLapinSection = function(section){
+    ['mainMenu','shop','scores','tutoriel'].forEach(id => {
+      document.getElementById(id).classList.remove('active');
+    });
+    document.getElementById(section).classList.add('active');
+    if(section === 'shop') document.getElementById("coinCount").textContent = coins;
+    if(section === 'scores') updateScoreList();
+  }
+
+  window.buy = function(type, skin, price){
+    if(price > coins){
+      alert("Pas assez de pièces !");
+      return;
+    }
+    if(type === 'bunny'){
+      bunnySkin = skin;
+      localStorage.setItem("bunnySkin", bunnySkin);
+    } else if(type === 'carrot'){
+      carrotSkin = skin;
+      localStorage.setItem("carrotSkin", carrotSkin);
+    }
+    coins -= price;
+    localStorage.setItem("coins", coins);
+    document.getElementById("coinCount").textContent = coins;
+    alert("Achat réussi !");
+  }
+
+  function updateScoreList(){
+    const list = document.getElementById("scoreList");
+    list.innerHTML = "";
+    bestScores.forEach((score,i) => {
+      let li = document.createElement("li");
+      li.textContent = (i+1) + ". " + score;
+      list.appendChild(li);
+    });
+  }
+
+  window.toggleMusic = function(){
+    const music = document.getElementById("music");
+    if(musicPlaying){
+      music.pause();
+      musicPlaying = false;
+    } else {
+      music.play();
+      musicPlaying = true;
+    }
+  }
+
+  // ==== JEU MEMORY ====
+  const cardsSymbols = ['🐇','🥕','🍎','🐿️','🐝','🐞','🍄','🌸'];
+  let memoryGrid = [];
+  let flippedCards = [];
+  let matchedCount = 0;
+
+  window.startMemoryGame = function(){
+    memoryGrid = [...cardsSymbols, ...cardsSymbols];
+    shuffleArray(memoryGrid);
+    flippedCards = [];
+    matchedCount = 0;
+    const grid = document.getElementById("memoryGrid");
+    grid.innerHTML = "";
+    document.getElementById("memoryMessage").textContent = "";
+    for(let i=0; i < memoryGrid.length; i++){
+      let card = document.createElement("div");
+      card.className = "memoryCard";
+      card.dataset.symbol = memoryGrid[i];
+      card.addEventListener("click", () => flipCard(card));
+      grid.appendChild(card);
+    }
+  }
+
+  function flipCard(card){
+    if(flippedCards.length === 2 || card.classList.contains("flipped") || card.classList.contains("matched")){
+      return;
+    }
+    card.classList.add("flipped");
+    card.textContent = card.dataset.symbol;
+    flippedCards.push(card);
+    if(flippedCards.length === 2){
+      if(flippedCards[0].dataset.symbol === flippedCards[1].dataset.symbol){
+        flippedCards[0].classList.add("matched");
+        flippedCards[1].classList.add("matched");
+        flippedCards = [];
+        matchedCount += 2;
+        if(matchedCount === memoryGrid.length){
+          document.getElementById("memoryMessage").textContent = "🎉 Bravo, tu as gagné !";
+        }
+      } else {
+        setTimeout(() => {
+          flippedCards.forEach(c => {
+            c.classList.remove("flipped");
+            c.textContent = "";
+          });
+          flippedCards = [];
+        }, 1000);
+      }
+    }
+  }
+
+  function shuffleArray(arr){
+    for(let i=arr.length-1; i>0; i--){
+      let j = Math.floor(Math.random() * (i+1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  // ==== JEU PING PONG ====
+  const pongCanvas = document.getElementById("pongCanvas");
+  const pongCtx = pongCanvas.getContext("2d");
+
+  let pongInterval;
+  let pongGameRunning = false;
+
+  const paddleWidth = 10;
+  const paddleHeight = 80;
+  const ballRadius = 10;
+
+  let leftPaddleY, rightPaddleY, ballX, ballY, ballSpeedX, ballSpeedY, leftScore, rightScore;
+
+  function resetPong(){
+    leftPaddleY = pongCanvas.height / 2 - paddleHeight / 2;
+    rightPaddleY = pongCanvas.height / 2 - paddleHeight / 2;
+    ballX = pongCanvas.width / 2;
+    ballY = pongCanvas.height / 2;
+    ballSpeedX = 5 * (Math.random() < 0.5 ? 1 : -1);
+    ballSpeedY = 3 * (Math.random() < 0.5 ? 1 : -1);
+    leftScore = 0;
+    rightScore = 0;
+  }
+
+  function drawPong(){
+    pongCtx.fillStyle = "#000";
+    pongCtx.fillRect(0,0,pongCanvas.width,pongCanvas.height);
+
+    pongCtx.strokeStyle = "#fff";
+    pongCtx.setLineDash([10, 15]);
+    pongCtx.beginPath();
+    pongCtx.moveTo(pongCanvas.width/2, 0);
+    pongCtx.lineTo(pongCanvas.width/2, pongCanvas.height);
+    pongCtx.stroke();
+    pongCtx.setLineDash([]);
+
+    pongCtx.fillStyle = "#fff";
+    pongCtx.fillRect(10, leftPaddleY, paddleWidth, paddleHeight);
+    pongCtx.fillRect(pongCanvas.width - 20, rightPaddleY, paddleWidth, paddleHeight);
+
+    pongCtx.beginPath();
+    pongCtx.arc(ballX, ballY, ballRadius, 0, Math.PI*2);
+    pongCtx.fill();
+
+    pongCtx.font = "30px Arial";
+    pongCtx.fillText(leftScore, pongCanvas.width/4, 30);
+    pongCtx.fillText(rightScore, 3 * pongCanvas.width/4, 30);
+  }
+
+  function updatePong(){
+    ballX += ballSpeedX;
+    ballY += ballSpeedY;
+
+    if(ballY + ballRadius > pongCanvas.height || ballY - ballRadius < 0){
+      ballSpeedY = -ballSpeedY;
+    }
+
+    if(ballX - ballRadius < 20){
+      if(ballY > leftPaddleY && ballY < leftPaddleY + paddleHeight){
+        ballSpeedX = -ballSpeedX;
+      } else {
+        rightScore++;
+        resetBall();
+      }
+    }
+    if(ballX + ballRadius > pongCanvas.width - 20){
+      if(ballY > rightPaddleY && ballY < rightPaddleY + paddleHeight){
+        ballSpeedX = -ballSpeedX;
+      } else {
+        leftScore++;
+        resetBall();
+      }
+    }
+
+    drawPong();
+  }
+
+  function resetBall(){
+    ballX = pongCanvas.width / 2;
+    ballY = pongCanvas.height / 2;
+    ballSpeedX = 5 * (Math.random() < 0.5 ? 1 : -1);
+    ballSpeedY = 3 * (Math.random() < 0.5 ? 1 : -1);
+  }
+
+  window.startPongGame = function(){
+    stopPongGame();
+    resetPong();
+    pongGameRunning = true;
+    drawPong();
+    pongInterval = setInterval(updatePong, 30);
+  }
+
+  window.stopPongGame = function(){
+    pongGameRunning = false;
+    clearInterval(pongInterval);
+  }
+
+  let leftTouchId = null;
+  let rightTouchId = null;
+  let lastLeftY = null;
+  let lastRightY = null;
+
+  pongCanvas.addEventListener('touchstart', e => {
+    for(let t of e.changedTouches){
+      if(t.clientX < pongCanvas.width/2 && leftTouchId === null){
+        leftTouchId = t.identifier;
+        lastLeftY = t.clientY;
+      } else if(t.clientX >= pongCanvas.width/2 && rightTouchId === null){
+        rightTouchId = t.identifier;
+        lastRightY = t.clientY;
+      }
+    }
+    e.preventDefault();
+  });
+
+  pongCanvas.addEventListener('touchmove', e => {
+    for(let t of e.changedTouches){
+      if(t.identifier === leftTouchId){
+        let deltaY = t.clientY - lastLeftY;
+        leftPaddleY += deltaY;
+        if(leftPaddleY < 0) leftPaddleY = 0;
+        if(leftPaddleY > pongCanvas.height - paddleHeight) leftPaddleY = pongCanvas.height - paddleHeight;
+        lastLeftY = t.clientY;
+      } else if(t.identifier === rightTouchId){
+        let deltaY = t.clientY - lastRightY;
+        rightPaddleY += deltaY;
+        if(rightPaddleY < 0) rightPaddleY = 0;
+        if(rightPaddleY > pongCanvas.height - paddleHeight) rightPaddleY = pongCanvas.height - paddleHeight;
+        lastRightY = t.clientY;
+      }
+    }
+    e.preventDefault();
+  });
+
+  pongCanvas.addEventListener('touchend', e => {
+    for(let t of e.changedTouches){
+      if(t.identifier === leftTouchId) leftTouchId = null;
+      if(t.identifier === rightTouchId) rightTouchId = null;
+    }
+    e.preventDefault();
+  });
+
+  document.addEventListener('keydown', e => {
+    if(!pongGameRunning) return;
+    const step = 20;
+    if(e.key === 'w') leftPaddleY -= step;
+    if(e.key === 's') leftPaddleY += step;
+    if(e.key === 'ArrowUp') rightPaddleY -= step;
+    if(e.key === 'ArrowDown') rightPaddleY += step;
+    if(leftPaddleY < 0) leftPaddleY = 0;
+    if(leftPaddleY > pongCanvas.height - paddleHeight) leftPaddleY = pongCanvas.height - paddleHeight;
+    if(rightPaddleY < 0) rightPaddleY = 0;
+    if(rightPaddleY > pongCanvas.height - paddleHeight) rightPaddleY = pongCanvas.height - paddleHeight;
+  });
+
+  // ==== PIERRE PAPIER CISEAUX ====
+  window.playRPS = function(userChoice) {
+    const choices = ['pierre', 'papier', 'ciseaux'];
+    const emojis = { pierre:'✊', papier:'✋', ciseaux:'✌️' };
+    const botChoice = choices[Math.floor(Math.random()*3)];
+    let result = '';
+    if(userChoice === botChoice) {
+      result = "Égalité ! 🤝";
+    } else if(
+      (userChoice === 'pierre' && botChoice === 'ciseaux') ||
+      (userChoice === 'papier' && botChoice === 'pierre') ||
+      (userChoice === 'ciseaux' && botChoice === 'papier')
+    ) {
+      result = "Gagné ! 🚀";
+    } else {
+      result = "Perdu ! 😬";
+    }
+    document.getElementById("rpsResult").innerHTML =
+      `Toi: ${emojis[userChoice]}<br>Ordinateur: ${emojis[botChoice]}<br><b>${result}</b>`;
+  }
+  window.resetRPS = function() {
+    document.getElementById("rpsResult").innerHTML = "";
+  }
+
+  // ==== TIC TAC TOE (MORPION) ====
+  let tttBoard = [];
+  let tttCurrent = '❌';
+  let tttGameOver = false;
+
+  window.startTTT = function() {
+    tttBoard = Array(9).fill('');
+    tttCurrent = '❌';
+    tttGameOver = false;
+    document.getElementById('tttMessage').textContent = "À toi de jouer !";
+    renderTTT();
+  }
+  function renderTTT() {
+    const grid = document.getElementById('tttGrid');
+    grid.innerHTML = "";
+    for(let i=0;i<9;i++){
+      let cell = document.createElement("div");
+      cell.className = "tttCell";
+      cell.textContent = tttBoard[i];
+      cell.onclick = () => tttClick(i);
+      grid.appendChild(cell);
+    }
+  }
+  function tttClick(idx) {
+    if(tttGameOver) return;
+    if(tttBoard[idx] !== '') return;
+    tttBoard[idx] = tttCurrent;
+    renderTTT();
+    let win = tttCheckWin();
+    if(win) {
+      tttGameOver = true;
+      for(let i=0;i<9;i++) {
+        if(win.includes(i)) document.getElementsByClassName("tttCell")[i].classList.add('winner');
+      }
+      document.getElementById('tttMessage').textContent = tttCurrent+" gagne ! 🎉";
+      return;
+    }
+    if(tttBoard.every(x=>x!=="")) {
+      tttGameOver = true;
+      document.getElementById('tttMessage').textContent = "Égalité ! 🤝";
+      return;
+    }
+    tttCurrent = (tttCurrent === '❌') ? '⭕️' : '❌';
+    document.getElementById('tttMessage').textContent = "À "+tttCurrent+" de jouer !";
+  }
+  function tttCheckWin() {
+    const lines = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    for(let l of lines) {
+      if(tttBoard[l[0]] && tttBoard[l[0]] === tttBoard[l[1]] && tttBoard[l[0]] === tttBoard[l[2]])
+        return l;
+    }
+    return null;
+  }
+
+  // ==== 2048 ====
+  let g2048Board, g2048Score;
+  window.start2048 = function() {
+    g2048Board = [
+      [0,0,0,0],
+      [0,0,0,0],
+      [0,0,0,0],
+      [0,0,0,0]
+    ];
+    g2048Score = 0;
+    add2048Tile(); add2048Tile();
+    draw2048();
+    document.getElementById('g2048Message').textContent = '';
+  }
+
+  window.draw2048 = function() {
+    let grid = '<table style="border-spacing:6px;">';
+    for(let y=0; y<4; y++) {
+      grid += '<tr>';
+      for(let x=0; x<4; x++) {
+        let v = g2048Board[y][x];
+        grid += `<td style="background:${v?`#${(0xee-(v*5)%0xee).toString(16).padStart(2,'0')}bb99`:'#eee'}; color:${v>=8?'#fff':'#333'};">${v||''}</td>`;
+      }
+      grid += '</tr>';
+    }
+    grid += '</table>';
+    document.getElementById('g2048Grid').innerHTML = grid;
+    document.getElementById('g2048Score').textContent = "Score : "+g2048Score;
+  }
+
+  window.move2048 = function(dir) {
+    let moved = false;
+    let before = g2048Board.map(row=>row.slice());
+    for(let t=0;t<(dir=='left'||dir=='right'?4:1);t++) {
+      let line = [];
+      for(let i=0;i<4;i++)
+        line.push(dir=='up'||dir=='down'?g2048Board[i][t]:g2048Board[t][i]);
+      if(dir=='right'||dir=='down') line.reverse();
+      let merged=[],out=[];
+      for(let i=0;i<4;i++) {
+        if(line[i]===0) continue;
+        if(out.length && out[out.length-1]===line[i] && !merged[out.length-1]) {
+          out[out.length-1]*=2; g2048Score += out[out.length-1]; merged[out.length-1]=true;
+        } else { out.push(line[i]); merged.push(false);}
+      }
+      while(out.length<4) out.push(0);
+      if(dir=='right'||dir=='down') out.reverse();
+      for(let i=0;i<4;i++)
+        if(dir=='up'||dir=='down') g2048Board[i][t]=out[i];
+        else g2048Board[t][i]=out[i];
+    }
+    if(JSON.stringify(before)!==JSON.stringify(g2048Board)) {
+      add2048Tile();
+      draw2048();
+      if(check2048Win()) document.getElementById('g2048Message').textContent = '🎉 Bravo, tu as fait 2048 !';
+      else if(!canMove2048()) document.getElementById('g2048Message').textContent = 'Fin de partie 😢';
+    }
+  }
+
+  function add2048Tile() {
+    let empties=[];
+    for(let y=0;y<4;y++) for(let x=0;x<4;x++) if(!g2048Board[y][x]) empties.push([y,x]);
+    if(empties.length) {
+      let [y,x]=empties[Math.floor(Math.random()*empties.length)];
+      g2048Board[y][x]=Math.random()<0.9?2:4;
+    }
+  }
+
+  function check2048Win() {
+    return g2048Board.some(row=>row.includes(2048));
+  }
+  function canMove2048() {
+    for(let y=0;y<4;y++) for(let x=0;x<4;x++) {
+      if(!g2048Board[y][x]) return true;
+      if(y<3 && g2048Board[y][x]===g2048Board[y+1][x]) return true;
+      if(x<3 && g2048Board[y][x]===g2048Board[y][x+1]) return true;
+    }
+    return false;
+  }
+
+  document.addEventListener('keydown',function(e){
+    if(document.getElementById('g2048Game').classList.contains('active')) {
+      if(e.key==='ArrowUp') move2048('up');
+      if(e.key==='ArrowDown') move2048('down');
+      if(e.key==='ArrowLeft') move2048('left');
+      if(e.key==='ArrowRight') move2048('right');
+    }
+  });
+
+};
+</script>
+
+</body>
+</html>
